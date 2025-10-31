@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Перекладач - Microservices App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .result-item .original {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .result-item .translated {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.3em;
+            margin-top: 8px;
+        }
+        
+        .result-item .meta {
+            font-size: 0.85em;
+            color: #999;
+            margin-top: 8px;
+        }
+        
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+        
+        .log-entry.sent { color: #4ec9b0; }
+        .log-entry.recv { color: #569cd6; }
+        .log-entry.error { color: #f48771; }
+        .log-entry.info { color: #ce9178; }
+        
+        .clear-btn {
+            margin-top: 10px;
+            padding: 8px 15px;
+            background: #6c757d;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Перекладач</h1>
+            <p>Microservices Architecture Demo</p>
+        </div>
+        
+        <div class="content">
+            <div id="status" class="status disconnected">
+                <span>●</span>
+                <span>Відключено</span>
+            </div>
+            
+            <div class="input-group">
+                <label for="text">Текст для перекладу:</label>
+                <input type="text" id="text" placeholder="Введіть текст..." value="Hello world">
+            </div>
+            
+            <div class="row">
+                <div class="input-group">
+                    <label for="sourceLang">Мова джерела:</label>
+                    <select id="sourceLang">
+                        <option value="en">English (en)</option>
+                        <option value="uk">Українська (uk)</option>
+                        <option value="ru">Русский (ru)</option>
+                        <option value="de">Deutsch (de)</option>
+                        <option value="fr">Français (fr)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="targetLang">Мова перекладу:</label>
+                    <select id="targetLang">
+                        <option value="uk">Українська (uk)</option>
+                        <option value="en">English (en)</option>
+                        <option value="ru">Русский (ru)</option>
+                        <option value="de">Deutsch (de)</option>
+                        <option value="fr">Français (fr)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button id="sendBtn" onclick="sendTranslation()" disabled>Перекласти</button>
+            
+            <div id="results" class="result" style="display: none;">
+                <h3>Результати перекладу:</h3>
+                <div id="translations"></div>
+            </div>
+            
+            <div class="log">
+                <div style="margin-bottom: 10px; font-weight: bold;">Логи:</div>
+                <div id="log"></div>
+                <button class="clear-btn" onclick="clearLog()">Очистити логи</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const getGatewayUrl = () => {
+            const hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return `ws://${hostname}:8080`;
+            }
+            return `ws://${hostname}:8080`;
+        };
+        
+        const WS_URL = `${getGatewayUrl()}/ws`;
+        
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(status, text) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${status}`;
+            const statusText = statusDiv.querySelector('span:last-child');
+            statusText.textContent = text;
+            
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = status !== 'connected';
+        }
+        
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                return;
+            }
+            
+            updateStatus('connecting', 'Підключення...');
+            log('Підключення до API Gateway...', 'info');
+            
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                log('✅ Підключено до API Gateway', 'info');
+                updateStatus('connected', 'Підключено');
+                reconnectAttempts = 0;
+            };
+            
+            ws.onmessage = (event) => {
+                log(`📥 Отримано: ${event.data.substring(0, 100)}...`, 'recv');
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.translated_text) {
+                        displayTranslation(data);
+                    }
+                } catch (e) {
+                    log(`⚠️ Помилка парсингу: ${e}`, 'error');
+                }
+            };
+            
+            ws.onclose = () => {
+                log('❌ З\'єднання закрито', 'error');
+                updateStatus('disconnected', 'Відключено');
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    log(`🔄 Повторне підключення (спроба ${reconnectAttempts}/${maxReconnectAttempts})...`, 'info');
+                    setTimeout(connect, 2000 * reconnectAttempts);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                log(`❌ Помилка WebSocket: ${error}`, 'error');
+                updateStatus('disconnected', 'Помилка підключення');
+            };
+        }
+        
+        function sendTranslation() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ WebSocket не підключено', 'error');
+                connect();
+                return;
+            }
+            
+            const text = document.getElementById('text').value.trim();
+            const sourceLang = document.getElementById('sourceLang').value;
+            const targetLang = document.getElementById('targetLang').value;
+            
+            if (!text) {
+                alert('Введіть текст для перекладу!');
+                return;
+            }
+            
+            const payload = {
+                text: text,
+                source_lang: sourceLang,
+                target_lang: targetLang
+            };
+            
+            ws.send(JSON.stringify(payload));
+            log(`📤 Відправлено: ${JSON.stringify(payload)}`, 'sent');
+        }
+        
+        function displayTranslation(data) {
+            const resultsDiv = document.getElementById('results');
+            const translationsDiv = document.getElementById('translations');
+            
+            resultsDiv.style.display = 'block';
+            
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            item.innerHTML = `
+                <div class="original">
+                    <strong>Оригінал</strong> (${data.source_lang}): ${data.original_text}
+                </div>
+                <div class="translated">
+                    ${data.translated_text}
+                </div>
+                <div class="meta">
+                    Request ID: ${data.request_id} | ${data.target_lang}
+                </div>
+            `;
+            
+            translationsDiv.insertBefore(item, translationsDiv.firstChild);
+            
+            while (translationsDiv.children.length > 10) {
+                translationsDiv.removeChild(translationsDiv.lastChild);
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        window.addEventListener('load', () => {
+            connect();
+        });
+        
+        document.getElementById('text').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendTranslation();
+            }
+        });
+    </script>
+</body>
+</html>
+

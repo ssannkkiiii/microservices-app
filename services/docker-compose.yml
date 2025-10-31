@@ -1,0 +1,58 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: 
+      context: ./client
+      dockerfile: Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    expose:
+      - "8000"
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672/
+    restart: unless-stopped
+
+  go-worker:
+    build:
+      context: ./translate
+      dockerfile: Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ../api_gateway
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "8080:8080"
+    environment:
+      - BACKEND_WS_URL=ws://backend:8000/ws
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ../ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    restart: unless-stopped

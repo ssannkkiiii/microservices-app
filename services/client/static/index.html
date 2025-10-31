@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Translate WS Demo</title>
+</head>
+<body>
+  <h2>Translate WS Demo</h2>
+  <label>Text: <input id="text" value="Hello world" size="50"></label><br>
+  <label>From: <input id="src" value="en"></label>
+  <label>To: <input id="dst" value="uk"></label><br>
+  <button id="send">Send</button>
+  <pre id="log"></pre>
+
+  <script>
+    const log = (t)=>{ document.getElementById('log').textContent += t + "\n" }
+    const ws = new WebSocket("ws://" + location.host + "/ws");
+    ws.onopen = ()=> log("WS open");
+    ws.onmessage = (ev)=> log("RECV: " + ev.data);
+    ws.onclose = ()=> log("WS closed");
+
+    document.getElementById('send').onclick = ()=> {
+      const payload = {
+        text: document.getElementById('text').value,
+        source_lang: document.getElementById('src').value,
+        target_lang: document.getElementById('dst').value
+      };
+      ws.send(JSON.stringify(payload));
+      log("SENT: " + JSON.stringify(payload));
+    }
+  </script>
+</body>
+</html>
