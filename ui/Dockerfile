@@ -1,14 +1,10 @@
 FROM nginx:alpine
 
-RUN apk add --no-cache gettext
-
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
 COPY index.html /usr/share/nginx/html/index.html
 
-COPY nginx.conf.template /etc/nginx/nginx.conf.template
-
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+ENV PORT=80
 
 EXPOSE 80
 
-CMD ["/start.sh"]
+CMD sh -c "envsubst '\$PORT' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && exec nginx -g 'daemon off;'"
