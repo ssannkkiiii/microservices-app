@@ -151,7 +151,8 @@ func main() {
 		}
 	}
 	failOnError(err, "Failed to connect to RabbitMQ after retries")
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	defer conn.Close()
 
 	ch, err := conn.Channel()
@@ -192,7 +193,7 @@ func main() {
 		}
 
 		err = ch.PublishWithContext(
-			context.Background(),
+			ctx,
 			"",
 			replyTo,
 			false,
