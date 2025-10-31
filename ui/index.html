@@ -265,11 +265,39 @@
 
     <script>
         const getGatewayUrl = () => {
-            const hostname = window.location.hostname;
-            if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                return `ws://${hostname}:8080`;
+            // Перевірка URL параметра для ручного вказування API Gateway URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const apiGatewayUrl = urlParams.get('gateway');
+            if (apiGatewayUrl) {
+                // Якщо URL передано з параметром, використовуємо його
+                const url = apiGatewayUrl.startsWith('http://') || apiGatewayUrl.startsWith('https://') 
+                    ? apiGatewayUrl 
+                    : (apiGatewayUrl.startsWith('ws://') || apiGatewayUrl.startsWith('wss://')
+                        ? apiGatewayUrl
+                        : `wss://${apiGatewayUrl}`);
+                return url.replace(/^https?:/, 'wss:').replace(/^http:/, 'ws:');
             }
-            return `ws://${hostname}:8080`;
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname;
+            
+            // Для локальної розробки
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return `${protocol}//${hostname}:8080`;
+            }
+            
+            // Для Railway - підключення до API Gateway через публічний домен
+            // API Gateway: helpful-patience-production.up.railway.app
+            if (hostname.includes('railway.app')) {
+                // Використовуємо публічний домен API Gateway
+                return `wss://helpful-patience-production.up.railway.app`;
+            }
+            
+            // Fallback для інших випадків
+            if (protocol === 'wss:') {
+                return `wss://${hostname}`;
+            }
+            return `ws://${hostname}`;
         };
         
         const WS_URL = `${getGatewayUrl()}/ws`;
@@ -303,7 +331,7 @@
             }
             
             updateStatus('connecting', 'Підключення...');
-            log('Підключення до API Gateway...', 'info');
+            log(`Підключення до API Gateway: ${WS_URL}`, 'info');
             
             ws = new WebSocket(WS_URL);
             

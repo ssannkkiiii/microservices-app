@@ -15,7 +15,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BACKEND_WS_URL = os.getenv("BACKEND_WS_URL", "ws://backend:8000/ws")
+# Railway backend URL
+# Використовуємо internal domain для підключення між сервісами на Railway
+# Якщо це не працює, використайте public domain: wss://microservices-app-production.up.railway.app/ws
+BACKEND_WS_URL = os.getenv("BACKEND_WS_URL", "ws://microservices-app.railway.internal:8000/ws")
 
 @app.get("/health")
 async def health():
