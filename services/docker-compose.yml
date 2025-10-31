@@ -23,7 +23,7 @@ services:
     expose:
       - "8000"
     environment:
-      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBIT_URL=amqp://Cg7pyYf5PcIMk0yl:sJYYgR298JNVf3rspmGSG2LdjXuO18al@trolley.proxy.rlwy.net:55643
     restart: unless-stopped
 
   go-worker:

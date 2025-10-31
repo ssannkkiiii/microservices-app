@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -76,7 +77,7 @@ func translateWithAPI(text, srcLang, destLang string) (string, error) {
 	fullURL := fmt.Sprintf("%s?%s", apiURL, params.Encode())
 
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 1 * time.Second,
 	}
 
 	resp, err := client.Get(fullURL)
@@ -135,8 +136,12 @@ func main() {
 	var err error
 
 	maxRetries := 10
+	rabbitmqURL := os.Getenv("RABBIT_URL")
+	if rabbitmqURL == "" {
+		rabbitmqURL = "amqp://Cg7pyYf5PcIMk0yl:sJYYgR298JNVf3rspmGSG2LdjXuO18al@trolley.proxy.rlwy.net:55643"
+	}
 	for i := 0; i < maxRetries; i++ {
-		conn, err = amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
+		conn, err = amqp.Dial(rabbitmqURL)
 		if err == nil {
 			break
 		}
@@ -146,6 +151,7 @@ func main() {
 		}
 	}
 	failOnError(err, "Failed to connect to RabbitMQ after retries")
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer conn.Close()
 
 	ch, err := conn.Channel()
